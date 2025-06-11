@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: rrr-postgres
+    environment:
+      POSTGRES_USER: demo_user
+      POSTGRES_PASSWORD: demo_pass
+      POSTGRES_DB: restaurant_rocket
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "demo_user", "-d", "restaurant_rocket"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:6
+    container_name: rrr-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:6
+    container_name: rrr-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@restaurantrevenuerocket.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles:
+      - admin
+
+volumes:
+  postgres_data:
+    name: rrr-postgres-data
+
+networks:
+  default:
+    name: rrr-network

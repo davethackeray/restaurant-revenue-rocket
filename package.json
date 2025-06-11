@@ -1,0 +1,125 @@
+{
+  "name": "restaurant-revenue-rocket",
+  "version": "1.0.0",
+  "description": "Interactive AI education platform for restaurant industry professionals",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "preinstall": "node scripts/check-requirements.js",
+    "install:all": "npm install && npm run install:frontend && npm run install:backend",
+    "install:frontend": "cd frontend && npm install",
+    "install:backend": "cd backend && npm install",
+    "dev": "concurrently --names \"Backend,Frontend\" --prefix-colors \"blue,green\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build:local": "npm run build:frontend:local && npm run build:backend",
+    "build:frontend:local": "cd frontend && npm run build:local",
+    "start": "npm run start:production",
+    "start:development": "npm run dev",
+    "start:demonstration": "concurrently --names \"Backend,Frontend\" --prefix-colors \"blue,green\" \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:production": "cd backend && npm run start:production",
+    "start:backend": "cd backend && npm run start",
+    "start:frontend": "cd frontend && npm run preview",
+    "start:local": "npm run start:demonstration",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm run test",
+    "test:frontend": "cd frontend && npm run test",
+    "test:e2e": "cd frontend && npm run test:e2e",
+    "test:integration": "npm run test:backend:integration && npm run test:frontend:integration",
+    "test:backend:integration": "cd backend && npm run test:integration",
+    "test:frontend:integration": "cd frontend && npm run test:integration",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:fix": "npm run lint:backend:fix && npm run lint:frontend:fix",
+    "lint:backend:fix": "cd backend && npm run lint:fix",
+    "lint:frontend:fix": "cd frontend && npm run lint:fix",
+    "docker:up": "docker-compose -f docker-compose.local.yml up -d",
+    "docker:down": "docker-compose -f docker-compose.local.yml down",
+    "docker:restart": "npm run docker:down && npm run docker:up",
+    "docker:logs": "docker-compose -f docker-compose.local.yml logs -f",
+    "docker:clean": "docker-compose -f docker-compose.local.yml down -v && docker system prune -f",
+    "db:migrate": "cd backend && npm run db:migrate",
+    "db:seed": "cd backend && npm run db:seed",
+    "db:reset": "npm run docker:down && npm run docker:up && sleep 10 && npm run db:migrate && npm run db:seed",
+    "demo:reset": "node scripts/demo/reset-demo-environment.js",
+    "demo:load-profile": "node scripts/demo/load-client-profile.js",
+    "demo:export-session": "node scripts/demo/export-session.js",
+    "demo:preload": "node scripts/demo/preload-demo-data.js",
+    "init:demo-data": "npm run db:migrate && npm run db:seed && npm run demo:preload",
+    "setup:windows": "node scripts/windows/setup-verification.js",
+    "setup:check": "node scripts/setup/check-requirements.js",
+    "setup:docker": "node scripts/setup/verify-docker.js",
+    "monitor:resources": "node scripts/monitoring/resource-monitor.js",
+    "monitor:performance": "node scripts/monitoring/performance-monitor.js",
+    "clean": "npm run clean:frontend && npm run clean:backend && npm run clean:docker",
+    "clean:frontend": "cd frontend && npm run clean",
+    "clean:backend": "cd backend && npm run clean",
+    "clean:docker": "docker system prune -f",
+    "clean:all": "npm run clean && npm run docker:clean && rm -rf node_modules frontend/node_modules backend/node_modules",
+    "update:dependencies": "npm update && cd frontend && npm update && cd ../backend && npm update",
+    "security:audit": "npm audit && cd frontend && npm audit && cd ../backend && npm audit",
+    "security:fix": "npm audit fix && cd frontend && npm audit fix && cd ../backend && npm audit fix"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "keywords": [
+    "restaurant",
+    "ai",
+    "automation",
+    "demo",
+    "education",
+    "interactive",
+    "gamification"
+  ],
+  "author": "Restaurant Revenue Rocket Team",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/restaurant-revenue-rocket.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/restaurant-revenue-rocket/issues"
+  },
+  "homepage": "https://github.com/your-org/restaurant-revenue-rocket#readme",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "mocha": "^11.6.0",
+    "prettier": "^3.1.1",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run test"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "config": {
+    "demo_profiles_path": "./data/demo-profiles",
+    "exports_path": "./data/exports",
+    "logs_path": "./docker/volumes/logs"
+  }
+}
