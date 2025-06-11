@@ -6,6 +6,10 @@ const express = require('express');
 const router = express.Router();
 const SimulationEngine = require('./simulation-engine');
 const { processDecision } = require('./ai-decision-module');
+const { loadDemoProfiles, applyAIBehaviorParameters } = require('./profile-loader');
+
+// Load demo profiles on startup
+const profiles = loadDemoProfiles();
 const { 
   cacheSimulationState, 
   getCachedSimulationState, 
@@ -164,12 +168,28 @@ router.post('/simulations/start', async (req, res) => {
     const { scenarioId, totalDays = 7 } = req.body;
     const userId = req.userId;
 
-    // Fetch scenario configuration (from cache if available)
-    let scenarioConfig = await getCachedScenarioConfiguration(scenarioId || 'fine-dining-001');
-    if (!scenarioConfig) {
-      scenarioConfig = await db.getScenarioConfiguration(scenarioId || 'fine-dining-001');
-      if (scenarioConfig) {
-        await cacheScenarioConfiguration(scenarioId || 'fine-dining-001', scenarioConfig);
+    // Use loaded profiles if available, otherwise fall back to database configuration
+    let profile = profiles[scenarioId];
+    let scenarioConfig;
+    if (profile) {
+      // Apply AI behavior parameters from profile
+      const aiConfig = applyAIBehaviorParameters(profile);
+      scenarioConfig = {
+        scenario_id: scenarioId,
+        scenario_name: profile.name,
+        configuration_data: {
+          ai_behavior: aiConfig,
+          initial_state: profile.scenario.initialState
+        }
+      };
+    } else {
+      // Fetch scenario configuration (from cache if available)
+      scenarioConfig = await getCachedScenarioConfiguration(scenarioId || 'fine-dining-001');
+      if (!scenarioConfig) {
+        scenarioConfig = await db.getScenarioConfiguration(scenarioId || 'fine-dining-001');
+        if (scenarioConfig) {
+          await cacheScenarioConfiguration(scenarioId || 'fine-dining-001', scenarioConfig);
+        }
       }
     }
 

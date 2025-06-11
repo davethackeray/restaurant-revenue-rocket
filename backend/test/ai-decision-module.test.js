@@ -1,141 +1,165 @@
-// Restaurant Revenue Rocket - AI Decision-Making Module Tests
-// This script tests the integration with the Gemini API for latency, error handling, and response accuracy.
+const { expect } = require('chai');
+const sinon = require('sinon');
+const axios = require('axios');
+const { makeInventoryDecision, makeStaffingDecision, makePricingDecision } = require('../src/ai-decision-module');
 
-const assert = require('assert');
-const { makeDecision, processDecision } = require('../src/ai-decision-module');
+describe('AI Decision Module', () => {
+  let axiosPostStub;
 
-// Test data for inventory management scenario
-const testInputData = {
-  inventoryData: {
-    'Tomatoes': { quantity: 10, unit: 'kg', expiry: '2023-12-05' },
-    'Lettuce': { quantity: 5, unit: 'kg', expiry: '2023-12-03' },
-    'Chicken': { quantity: 20, unit: 'kg', expiry: '2023-12-10' },
-  },
-  salesTrends: {
-    'Tomatoes': { soldLastWeek: 15, unit: 'kg' },
-    'Lettuce': { soldLastWeek: 10, unit: 'kg' },
-    'Chicken': { soldLastWeek: 25, unit: 'kg' },
-  },
-  predictedDemand: {
-    'Tomatoes': { nextWeek: 18, unit: 'kg' },
-    'Lettuce': { nextWeek: 12, unit: 'kg' },
-    'Chicken': { nextWeek: 30, unit: 'kg' },
-  },
-  seasonalFactors: 'Holiday season approaching, expect 20% increase in demand.',
-  budget: '$500 for inventory order',
-  storageCapacity: '100 kg total across all items',
-};
-
-// Mock function to simulate API failure for error handling tests
-function mockApiFailure() {
-  throw new Error('Mock API failure: Unable to connect to Gemini API');
-}
-
-// Test suite
-describe('AI Decision-Making Module - Gemini API Integration Tests', function () {
-  this.timeout(10000); // Set timeout to 10 seconds for API calls
-
-    describe('Response Accuracy', function () {
-    it('should return a valid JSON decision for inventory management scenario', async function () {
-      if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
-        console.log('Response Accuracy Test Skipped: Gemini API key is not configured. Set GEMINI_API_KEY in environment variables.');
-        return;
-      }
-      try {
-        const result = await makeDecision('inventory-management', testInputData);
-        assert.strictEqual(typeof result, 'object', 'Result should be an object');
-        assert.strictEqual(typeof result.decision, 'object', 'Result should contain a decision object');
-        assert(Array.isArray(result.decision.itemsToOrder), 'itemsToOrder should be an array');
-        assert.strictEqual(typeof result.decision.orderTiming, 'string', 'orderTiming should be a string');
-        assert.strictEqual(typeof result.decision.rationale, 'string', 'rationale should be a string');
-        assert.strictEqual(typeof result.decision.expectedImpact, 'object', 'expectedImpact should be an object');
-        console.log('Response Accuracy Test Passed:', JSON.stringify(result, null, 2));
-      } catch (error) {
-        console.error('Response Accuracy Test Failed:', error.message);
-        throw error;
-      }
-    });
+  beforeEach(() => {
+    axiosPostStub = sinon.stub(axios, 'post');
   });
 
-  describe('Latency Test', function () {
-    it('should complete API call within acceptable latency (under 5 seconds)', async function () {
-      if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
-        console.log('Latency Test Skipped: Gemini API key is not configured. Set GEMINI_API_KEY in environment variables.');
-        return;
-      }
-      const startTime = Date.now();
-      try {
-        await makeDecision('inventory-management', testInputData);
-        const endTime = Date.now();
-        const latency = endTime - startTime;
-        assert(latency < 5000, `Latency of ${latency}ms exceeds acceptable threshold of 5000ms`);
-        console.log(`Latency Test Passed: API call completed in ${latency}ms`);
-      } catch (error) {
-        console.error('Latency Test Failed:', error.message);
-        throw error;
-      }
-    });
+  afterEach(() => {
+    sinon.restore();
   });
 
-  describe('Error Handling', function () {
-    it('should handle API key absence gracefully', async function () {
-      // Temporarily unset API key for this test (mocking missing key)
+  describe('makeInventoryDecision', () => {
+    it('should return inventory decision based on Gemini API response', async () => {
+      const mockResponse = {
+        data: {
+          candidates: [{
+            content: {
+              parts: [{
+                text: JSON.stringify({
+                  order: 'Place order for 50 units of ingredient X',
+                  quantity: 50,
+                  ingredient: 'ingredient X',
+                  rationale: 'Based on sales trends, inventory is low.'
+                })
+              }]
+            }
+          }]
+        }
+      };
+      axiosPostStub.resolves(mockResponse);
+
+      const data = { salesTrends: [100, 120, 80], currentInventory: 20 };
+      const decision = await makeInventoryDecision(data);
+
+      expect(decision).to.be.an('object');
+      expect(decision.order).to.equal('Place order for 50 units of ingredient X');
+      expect(decision.quantity).to.equal(50);
+      expect(decision.ingredient).to.equal('ingredient X');
+      expect(decision.rationale).to.equal('Based on sales trends, inventory is low.');
+      expect(axiosPostStub.calledOnce).to.be.true;
+    });
+
+    it('should handle API failure with fallback decision', async () => {
+      axiosPostStub.rejects(new Error('API Error'));
+
+      const data = { salesTrends: [100, 120, 80], currentInventory: 20 };
+      const decision = await makeInventoryDecision(data);
+
+      expect(decision).to.be.an('object');
+      expect(decision.order).to.equal('Place order for 30 units of default ingredient');
+      expect(decision.quantity).to.equal(30);
+      expect(decision.ingredient).to.equal('default ingredient');
+      expect(decision.rationale).to.include('Fallback decision due to API unavailability');
+    });
+
+    it('should handle missing API key with fallback decision', async () => {
       const originalApiKey = process.env.GEMINI_API_KEY;
       process.env.GEMINI_API_KEY = '';
-      
-      try {
-        await makeDecision('inventory-management', testInputData);
-        assert.fail('Should have thrown an error for missing API key');
-      } catch (error) {
-        assert.strictEqual(error.message, 'Gemini API key is not configured. Set GEMINI_API_KEY in environment variables.', 'Error message should indicate missing API key');
-        console.log('Error Handling Test Passed for Missing API Key:', error.message);
-      } finally {
-        // Restore original API key
-        process.env.GEMINI_API_KEY = originalApiKey;
-      }
-    });
 
-    it('should handle unsupported scenario gracefully', async function () {
-      if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
-        console.log('Unsupported Scenario Test Skipped: Gemini API key is not configured. Set GEMINI_API_KEY in environment variables.');
-        return;
-      }
-      try {
-        await makeDecision('unsupported-scenario', testInputData);
-        assert.fail('Should have thrown an error for unsupported scenario');
-      } catch (error) {
-        assert(error.message.includes('Unsupported scenario'), 'Error message should indicate unsupported scenario');
-        console.log('Error Handling Test Passed for Unsupported Scenario:', error.message);
-      }
+      const data = { salesTrends: [100, 120, 80], currentInventory: 20 };
+      const decision = await makeInventoryDecision(data);
+
+      expect(decision).to.be.an('object');
+      expect(decision.order).to.equal('Place order for 30 units of default ingredient');
+      expect(decision.rationale).to.include('API key not configured');
+
+      process.env.GEMINI_API_KEY = originalApiKey;
     });
   });
 
-  describe('End-to-End Process Decision', function () {
-    it('should process a decision and log it successfully', async function () {
-      if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
-        console.log('End-to-End Process Decision Test Skipped: Gemini API key is not configured. Set GEMINI_API_KEY in environment variables.');
-        return;
-      }
-      try {
-        const result = await processDecision('inventory-management', testInputData);
-        assert.strictEqual(typeof result, 'object', 'Result should be an object');
-        assert.strictEqual(typeof result.decision, 'object', 'Result should contain a decision object');
-        console.log('End-to-End Process Decision Test Passed:', JSON.stringify(result, null, 2));
-      } catch (error) {
-        console.error('End-to-End Process Decision Test Failed:', error.message);
-        throw error;
-      }
+  describe('makeStaffingDecision', () => {
+    it('should return staffing decision based on Gemini API response', async () => {
+      const mockResponse = {
+        data: {
+          candidates: [{
+            content: {
+              parts: [{
+                text: JSON.stringify({
+                  adjustment: 'Increase staff by 2 for peak hours',
+                  change: 2,
+                  timeSlot: 'peak hours',
+                  rationale: 'High customer traffic expected.'
+                })
+              }]
+            }
+          }]
+        }
+      };
+      axiosPostStub.resolves(mockResponse);
+
+      const data = { customerTraffic: [200, 250, 300], currentStaff: 5 };
+      const decision = await makeStaffingDecision(data);
+
+      expect(decision).to.be.an('object');
+      expect(decision.adjustment).to.equal('Increase staff by 2 for peak hours');
+      expect(decision.change).to.equal(2);
+      expect(decision.timeSlot).to.equal('peak hours');
+      expect(decision.rationale).to.equal('High customer traffic expected.');
+      expect(axiosPostStub.calledOnce).to.be.true;
+    });
+
+    it('should handle API failure with fallback decision', async () => {
+      axiosPostStub.rejects(new Error('API Error'));
+
+      const data = { customerTraffic: [200, 250, 300], currentStaff: 5 };
+      const decision = await makeStaffingDecision(data);
+
+      expect(decision).to.be.an('object');
+      expect(decision.adjustment).to.equal('Increase staff by 1 for default shift');
+      expect(decision.change).to.equal(1);
+      expect(decision.timeSlot).to.equal('default shift');
+      expect(decision.rationale).to.include('Fallback decision due to API unavailability');
+    });
+  });
+
+  describe('makePricingDecision', () => {
+    it('should return pricing decision based on Gemini API response', async () => {
+      const mockResponse = {
+        data: {
+          candidates: [{
+            content: {
+              parts: [{
+                text: JSON.stringify({
+                  priceChange: 'Increase price of item Y by 10%',
+                  percentage: 10,
+                  item: 'item Y',
+                  rationale: 'Demand is high for this item.'
+                })
+              }]
+            }
+          }]
+        }
+      };
+      axiosPostStub.resolves(mockResponse);
+
+      const data = { demandData: [50, 75, 100], currentPrice: 10 };
+      const decision = await makePricingDecision(data);
+
+      expect(decision).to.be.an('object');
+      expect(decision.priceChange).to.equal('Increase price of item Y by 10%');
+      expect(decision.percentage).to.equal(10);
+      expect(decision.item).to.equal('item Y');
+      expect(decision.rationale).to.equal('Demand is high for this item.');
+      expect(axiosPostStub.calledOnce).to.be.true;
+    });
+
+    it('should handle API failure with fallback decision', async () => {
+      axiosPostStub.rejects(new Error('API Error'));
+
+      const data = { demandData: [50, 75, 100], currentPrice: 10 };
+      const decision = await makePricingDecision(data);
+
+      expect(decision).to.be.an('object');
+      expect(decision.priceChange).to.equal('Increase price of default item by 5%');
+      expect(decision.percentage).to.equal(5);
+      expect(decision.item).to.equal('default item');
+      expect(decision.rationale).to.include('Fallback decision due to API unavailability');
     });
   });
 });
-
-// Run tests if this file is executed directly
-if (require.main === module) {
-  console.log('Running AI Decision-Making Module Tests...');
-  const Mocha = require('mocha');
-  const mocha = new Mocha();
-  mocha.addFile(__filename);
-  mocha.run(failures => {
-    process.exitCode = failures ? 1 : 0;
-  });
-}

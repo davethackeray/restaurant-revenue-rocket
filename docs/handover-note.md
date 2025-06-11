@@ -42,21 +42,27 @@ This handover note is prepared for the next Software Engineer taking over the de
 
 ## Current State
 - **Phase 1**: Completed. All research and design tasks are finalized, with comprehensive documentation covering agentic AI concepts, existing system analysis, target decisions for automation, risk mitigation strategies, AI agent architecture, data structures, and technical specifications.
-- **Phase 2**: Completed. Core agentic AI components, including AI decision-making modules for inventory, staffing, and pricing, a simulation engine with feedback loops, database schemas, Redis caching, and backend API endpoints, are fully implemented and refined. Unit testing tasks remain pending and are the next immediate focus.
+- **Phase 2**: Completed. Core agentic AI components, including AI decision-making modules for inventory, staffing, and pricing, a simulation engine with feedback loops, database schemas, Redis caching, and backend API endpoints, are fully implemented and refined. Unit testing tasks remain pending and are a priority.
+- **Phase 3**: Partially Completed. Progress includes:
+  - **Week 7**: Frontend setup with React components for AI decision visualization and API integration using Redux for state management.
+  - **Week 8, Day 1-5**: Extended demo profile JSON files with AI behavior parameters for different restaurant types (fine dining and quick service) and updated backend profile loading logic to apply these parameters during scenario initialization.
 - **Technical Setup**: The development environment is set up with Node.js, Docker containers for PostgreSQL and Redis, and necessary dependencies installed. Configuration for Gemini API integration is in place, though a valid API key is required for full functionality.
-- **Codebase**: Key components are located in 'backend/src/' directory, with corresponding documentation in the 'docs/' directory.
+- **Codebase**: Key components are located in 'backend/src/' and 'frontend/src/' directories, with corresponding documentation in the 'docs/' directory.
 
 ## Next Steps
 As per the development roadmap ('docs/development-roadmap-agentic-ai.md'), the following are the immediate next steps for Phase 3: Integration with Demonstration Platform (Weeks 7-9). These tasks should be prioritized by the incoming engineer:
 
-1. **Week 7, Day 1-2**: Review the existing frontend codebase (React) to identify integration points for displaying AI-driven scenarios, focusing on scenario rendering components.
-2. **Week 7, Day 3-5**: Develop new React components or update existing ones to visualize AI decisions (e.g., decision cards, timeline views) and their real-time impacts (e.g., graphs for revenue, customer satisfaction).
-3. **Week 7, Day 6-7**: Implement API calls from frontend to backend endpoints to fetch AI decisions and simulation results, ensuring proper state management (e.g., using Redux or Context API).
-4. **Unit Testing**: Complete pending unit testing tasks for Phase 2 components:
+1. **Week 8, Day 6-7**: Integrate AI decision outcomes with the existing ROI calculator, modifying calculation logic to dynamically update financial metrics (e.g., profit margins, cost savings) based on AI actions.
+2. **Week 9, Day 1-2**: Enhance logging mechanisms to capture detailed AI interactions (e.g., decision made, rationale, outcome) linked to user sessions in PostgreSQL.
+3. **Week 9, Day 3-4**: Update demo export functionality to include AI interaction logs in the exported JSON, ensuring data is formatted for client readability.
+4. **Week 9, Day 5-7**: Test and refine frontend-backend integration, addressing UI responsiveness issues, data synchronization delays, and user experience feedback for AI-driven scenarios.
+5. **Unit Testing**: Complete pending unit testing tasks for Phase 2 and Phase 3 components:
    - Week 3, Day 7: Unit test Gemini API integration.
    - Week 4, Day 7: Unit test simulation engine components.
    - Week 5, Day 7: Unit test feedback loop logic and database storage functions.
    - Week 6, Day 4: Integration test API endpoints with mock data.
+   - Week 7, Day 7: Unit test new React components for rendering AI decisions.
+>>>>>>> REPLACE
 
 Additionally, ensure that a valid Gemini API key is configured to enable full testing and functionality of AI decision-making modules. Refer to 'backend/.env' for API key setup.
 
